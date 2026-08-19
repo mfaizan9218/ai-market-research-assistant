@@ -1,0 +1,1676 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Bring your own AI and generate structured market research reports — connect OpenAI, Anthropic, or Gemini with your own key." />
+<title>AI Market Research Assistant</title>
+<style>
+:root {
+  /* Primary — deep indigo/violet */
+  --color-primary-50: #f1eefe;
+  --color-primary-100: #e0d9fd;
+  --color-primary-300: #b3a0f7;
+  --color-primary-500: #6d4de0;
+  --color-primary-600: #5a3bc9;
+  --color-primary-700: #4a2fa8;
+  --color-primary-900: #2b1a63;
+
+  /* Secondary — teal */
+  --color-secondary-50: #e6faf5;
+  --color-secondary-300: #7fe0c9;
+  --color-secondary-500: #1cb894;
+  --color-secondary-700: #0f7d63;
+
+  /* Semantic */
+  --color-success: #1c9e63;
+  --color-warning: #c98a1c;
+  --color-danger: #d64545;
+  --color-info: #3b82c9;
+
+  /* Neutrals (light mode) */
+  --color-bg-base: #f7f7fb;
+  --color-surface: #ffffff;
+  --color-surface-glass: rgba(255, 255, 255, 0.65);
+  --color-border: #e4e2ef;
+  --color-text-primary: #1c1a2b;
+  --color-text-secondary: #5c5872;
+  --color-text-muted: #928da8;
+
+  /* Typography */
+  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-reading: "Source Serif Pro", Georgia, serif;
+
+  /* Layout */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --glass-blur: 16px;
+}
+
+[data-theme="dark"] {
+  --color-bg-base: #14121f;
+  --color-surface: #1c1a2b;
+  --color-surface-glass: rgba(28, 26, 43, 0.6);
+  --color-border: #2e2b42;
+  --color-text-primary: #f2f1f8;
+  --color-text-secondary: #b4afc9;
+  --color-text-muted: #736d8c;
+}
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* Consistent, visible focus ring on every interactive element — not just
+   the form inputs each screen already styles individually. Keyboard users
+   get the same affordance everywhere in the app. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="tab"]:focus-visible,
+[role="radio"]:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+/* Respect reduced-motion preferences instead of forcing every transition. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+/* ---------- App shell (sidebar + topbar) ---------- */
+.app-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+}
+.app-sidebar {
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  padding: 1.5rem 1rem;
+}
+.app-logo {
+  font-weight: 500;
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  padding: 0 0.75rem;
+  margin-bottom: 2rem;
+}
+.app-sidebar ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.app-sidebar button {
+  width: 100%; text-align: left; padding: 0.6rem 0.75rem; border: none; background: transparent;
+  border-radius: var(--radius-sm); font-size: 0.9rem; color: var(--color-text-secondary); cursor: pointer;
+}
+.app-sidebar button:hover { background: var(--color-bg-base); }
+.app-sidebar button.active { background: var(--color-primary-50); color: var(--color-primary-700); font-weight: 500; }
+.app-main { display: flex; flex-direction: column; min-width: 0; }
+.app-topbar {
+  height: 64px; border-bottom: 1px solid var(--color-border); background: var(--color-surface);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem;
+}
+.app-search {
+  width: 320px; height: 36px; border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  padding: 0 0.75rem; font-size: 0.85rem; background: var(--color-bg-base); color: var(--color-text-primary);
+}
+.app-user { font-size: 0.85rem; color: var(--color-text-secondary); }
+.app-content { flex: 1; padding: 2rem; overflow-y: auto; }
+@media (max-width: 900px) {
+  .app-shell { grid-template-columns: 1fr; }
+  .app-sidebar { display: none; }
+}
+
+/* ---------- Auth ---------- */
+.auth-screen { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; background: var(--color-bg-base); }
+.auth-hero { position: relative; display: flex; align-items: center; padding: 4rem;
+  background: linear-gradient(160deg, var(--color-primary-700), var(--color-primary-900)); color: white; overflow: hidden; }
+.auth-hero-content { position: relative; z-index: 1; max-width: 420px; }
+.auth-hero-badge { display: inline-block; padding: 0.35rem 0.85rem; border-radius: 999px; background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2); font-size: 0.8rem; margin-bottom: 1.5rem; }
+.auth-hero h1 { font-size: 2rem; line-height: 1.25; font-weight: 500; margin: 0 0 1rem; }
+.auth-hero p { font-size: 1rem; line-height: 1.6; color: rgba(255,255,255,0.8); margin: 0; }
+.auth-panel { display: flex; align-items: center; justify-content: center; padding: 2rem; }
+.auth-card { width: 100%; max-width: 400px; background: var(--color-surface-glass); backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 2rem; }
+.auth-mode-toggle { display: flex; background: var(--color-bg-base); border-radius: var(--radius-md); padding: 4px; margin-bottom: 1.5rem; }
+.auth-mode-toggle button { flex: 1; border: none; background: transparent; padding: 0.5rem; font-size: 0.9rem;
+  border-radius: var(--radius-sm); cursor: pointer; color: var(--color-text-secondary); }
+.auth-mode-toggle button.active { background: var(--color-surface); color: var(--color-text-primary); font-weight: 500; }
+.auth-card h2 { font-size: 1.35rem; font-weight: 500; color: var(--color-text-primary); margin: 0 0 1.5rem; }
+.auth-error { background: rgba(214,69,69,0.1); border: 1px solid var(--color-danger); color: var(--color-danger);
+  padding: 0.75rem 1rem; border-radius: var(--radius-sm); font-size: 0.875rem; margin-bottom: 1.25rem; }
+.auth-card form { display: flex; flex-direction: column; }
+.auth-card label { font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 0.35rem; }
+.auth-card input { height: 44px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0 0.9rem;
+  margin-bottom: 1rem; font-size: 0.95rem; background: var(--color-surface); color: var(--color-text-primary); }
+.auth-link { font-size: 0.85rem; color: var(--color-primary-600); text-decoration: none; align-self: flex-end; margin: -0.5rem 0 1.25rem; }
+.auth-submit { height: 44px; border: none; border-radius: var(--radius-sm); background: var(--color-primary-500); color: white;
+  font-size: 0.95rem; font-weight: 500; cursor: pointer; }
+.auth-submit:hover:not(:disabled) { background: var(--color-primary-600); }
+.auth-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.auth-divider { display: flex; align-items: center; margin: 1.5rem 0; color: var(--color-text-muted); font-size: 0.8rem; }
+.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--color-border); }
+.auth-divider span { padding: 0 0.75rem; }
+.auth-google { height: 44px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface);
+  color: var(--color-text-primary); font-size: 0.9rem; cursor: pointer; width: 100%; }
+.auth-google:hover { border-color: var(--color-primary-300); }
+.auth-switch { text-align: center; font-size: 0.85rem; color: var(--color-text-secondary); margin: 1.5rem 0 0; }
+.auth-link-button { border: none; background: none; color: var(--color-primary-600); font-weight: 500; cursor: pointer; padding: 0; font-size: 0.85rem; }
+@media (max-width: 860px) { .auth-screen { grid-template-columns: 1fr; } .auth-hero { display: none; } }
+
+/* ---------- Onboarding ---------- */
+.onboarding-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem;
+  background: radial-gradient(circle at top, var(--color-primary-100), var(--color-bg-base) 60%); }
+.onboarding-card { width: 100%; max-width: 560px; background: var(--color-surface-glass); backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 2.5rem; }
+.onboarding-eyebrow { display: inline-block; font-size: 0.8rem; color: var(--color-primary-600); font-weight: 500; margin-bottom: 0.75rem; }
+.onboarding-card h1 { font-size: 1.6rem; font-weight: 500; color: var(--color-text-primary); margin: 0 0 0.5rem; }
+.onboarding-subtitle { color: var(--color-text-secondary); font-size: 0.95rem; line-height: 1.6; margin: 0 0 2rem; }
+.provider-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+.provider-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 1rem; border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); background: var(--color-surface); cursor: pointer; text-align: left; }
+.provider-card:hover { border-color: var(--color-primary-300); }
+.provider-card.selected { border-color: var(--color-primary-500); box-shadow: 0 0 0 1px var(--color-primary-500); }
+.provider-name { font-weight: 500; color: var(--color-text-primary); font-size: 0.95rem; }
+.provider-description { font-size: 0.8rem; color: var(--color-text-muted); }
+.key-entry { margin-bottom: 1.5rem; }
+.key-entry label { display: block; font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 0.4rem; }
+.key-input-row { display: flex; gap: 8px; }
+.key-input-row input { flex: 1; height: 44px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0 0.9rem;
+  font-size: 0.95rem; background: var(--color-surface); color: var(--color-text-primary); }
+.verify-button { height: 44px; padding: 0 1.25rem; border: none; border-radius: var(--radius-sm); background: var(--color-primary-500);
+  color: white; font-size: 0.9rem; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.verify-button:hover:not(:disabled) { background: var(--color-primary-600); }
+.verify-button:disabled { opacity: 0.5; cursor: not-allowed; }
+.verify-status { margin-top: 0.75rem; padding: 0.6rem 0.9rem; border-radius: var(--radius-sm); font-size: 0.85rem; }
+.verify-status.success { background: rgba(28,158,99,0.1); color: var(--color-success); border: 1px solid var(--color-success); }
+.verify-status.error { background: rgba(214,69,69,0.1); color: var(--color-danger); border: 1px solid var(--color-danger); }
+.key-note { font-size: 0.78rem; color: var(--color-text-muted); margin: 0.75rem 0 0; }
+.onboarding-actions { display: flex; justify-content: space-between; align-items: center; }
+.onboarding-skip { border: none; background: none; color: var(--color-text-secondary); font-size: 0.9rem; cursor: pointer; }
+.onboarding-continue { height: 44px; padding: 0 1.5rem; border: none; border-radius: var(--radius-sm); background: var(--color-primary-500);
+  color: white; font-size: 0.9rem; font-weight: 500; cursor: pointer; }
+.onboarding-continue:hover:not(:disabled) { background: var(--color-primary-600); }
+.onboarding-continue:disabled { opacity: 0.4; cursor: not-allowed; }
+@media (max-width: 560px) { .provider-grid { grid-template-columns: 1fr; } .onboarding-card { padding: 1.5rem; } }
+
+/* ---------- Dashboard ---------- */
+.dashboard-hero { display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700)); color: white;
+  border-radius: var(--radius-lg); padding: 2rem; margin-bottom: 2rem; }
+.dashboard-hero h1 { font-size: 1.5rem; font-weight: 500; margin: 0 0 0.4rem; }
+.dashboard-hero p { margin: 0; color: rgba(255,255,255,0.8); font-size: 0.95rem; }
+.dashboard-cta { height: 44px; padding: 0 1.25rem; border: none; border-radius: var(--radius-sm); background: white;
+  color: var(--color-primary-700); font-weight: 500; font-size: 0.9rem; cursor: pointer; white-space: nowrap; }
+.dashboard-cta:hover { background: var(--color-primary-50); }
+.dashboard-section h2 { font-size: 1.1rem; font-weight: 500; color: var(--color-text-primary); margin: 0 0 1rem; }
+.dashboard-project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+.dashboard-project-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 1.25rem;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); cursor: pointer; text-align: left; }
+.dashboard-project-card:hover { border-color: var(--color-primary-300); }
+.project-name { font-weight: 500; color: var(--color-text-primary); font-size: 0.95rem; }
+.project-industry { font-size: 0.8rem; color: var(--color-primary-600); }
+.project-updated { font-size: 0.78rem; color: var(--color-text-muted); margin-top: 6px; }
+.dashboard-empty-state, .projects-empty-state, .history-empty-state {
+  border: 1px dashed var(--color-border); border-radius: var(--radius-lg); padding: 3rem 2rem; text-align: center; background: var(--color-surface); }
+.dashboard-empty-state h3, .projects-empty-state h3, .history-empty-state h3 { font-size: 1.1rem; font-weight: 500; color: var(--color-text-primary); margin: 0 0 0.5rem; }
+.dashboard-empty-state p, .projects-empty-state p, .history-empty-state p { color: var(--color-text-secondary); font-size: 0.9rem; max-width: 420px; margin: 0 auto 1.5rem; line-height: 1.6; }
+.dashboard-empty-icon, .projects-empty-icon, .history-empty-icon {
+  display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 999px;
+  background: var(--color-primary-50); color: var(--color-primary-600); margin-bottom: 1rem; font-size: 1.3rem; }
+
+/* ---------- Research Projects ---------- */
+.projects-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+.projects-header h1 { font-size: 1.4rem; font-weight: 500; color: var(--color-text-primary); margin: 0; }
+.projects-new-button { height: 40px; padding: 0 1.1rem; border: none; border-radius: var(--radius-sm); background: var(--color-primary-500);
+  color: white; font-size: 0.88rem; font-weight: 500; cursor: pointer; }
+.projects-new-button:hover { background: var(--color-primary-600); }
+.projects-filter { width: 100%; max-width: 360px; height: 40px; border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  padding: 0 0.9rem; font-size: 0.88rem; background: var(--color-surface); color: var(--color-text-primary); margin-bottom: 1.5rem; }
+.projects-list { list-style: none; margin: 0; padding: 0; background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); overflow: hidden; }
+.projects-list-row { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-border); gap: 1rem; }
+.projects-list-row:last-child { border-bottom: none; }
+.projects-list-main { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; border: none; background: none; cursor: pointer; text-align: left; flex: 1; min-width: 0; }
+.projects-list-name { font-weight: 500; color: var(--color-text-primary); font-size: 0.92rem; }
+.projects-list-industry { font-size: 0.8rem; color: var(--color-primary-600); }
+.projects-list-updated { font-size: 0.8rem; color: var(--color-text-muted); white-space: nowrap; }
+.projects-archive-button { border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-secondary);
+  font-size: 0.8rem; padding: 0.4rem 0.8rem; border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap; }
+.projects-archive-button:hover { border-color: var(--color-danger); color: var(--color-danger); }
+
+/* ---------- Research Builder ---------- */
+.builder-container { max-width: 640px; }
+.builder-container h1 { font-size: 1.4rem; font-weight: 500; color: var(--color-text-primary); margin: 0 0 0.4rem; }
+.builder-subtitle { color: var(--color-text-secondary); font-size: 0.92rem; line-height: 1.6; margin: 0 0 1.5rem; }
+.builder-error { background: rgba(214,69,69,0.1); border: 1px solid var(--color-danger); color: var(--color-danger);
+  padding: 0.75rem 1rem; border-radius: var(--radius-sm); font-size: 0.85rem; margin-bottom: 1.25rem; }
+.builder-form { display: flex; flex-direction: column; background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); padding: 1.75rem; }
+.builder-form label { font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 0.35rem; }
+.builder-form > input { height: 42px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0 0.85rem;
+  font-size: 0.9rem; margin-bottom: 1.25rem; background: var(--color-bg-base); color: var(--color-text-primary); }
+.builder-tag-input-row { display: flex; gap: 8px; margin-bottom: 0.75rem; }
+.builder-tag-input-row input { flex: 1; height: 42px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0 0.85rem;
+  font-size: 0.9rem; background: var(--color-bg-base); color: var(--color-text-primary); }
+.builder-tag-input-row button { height: 42px; padding: 0 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  background: var(--color-surface); cursor: pointer; font-size: 0.85rem; color: var(--color-text-primary); }
+.builder-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1.25rem; }
+.builder-tag { display: flex; align-items: center; gap: 6px; padding: 0.3rem 0.6rem; background: var(--color-primary-50);
+  color: var(--color-primary-700); border-radius: 999px; font-size: 0.8rem; }
+.builder-tag button { border: none; background: none; color: var(--color-primary-700); cursor: pointer; font-size: 0.95rem; line-height: 1; }
+.builder-goals { border: none; padding: 0; margin: 0 0 1.5rem; }
+.builder-goals legend { font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 0.5rem; padding: 0; }
+.builder-goal-checkbox { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--color-text-primary); padding: 0.5rem 0; }
+.builder-submit { height: 46px; border: none; border-radius: var(--radius-sm); background: var(--color-primary-500); color: white;
+  font-size: 0.95rem; font-weight: 500; cursor: pointer; }
+.builder-submit:hover:not(:disabled) { background: var(--color-primary-600); }
+.builder-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---------- Report Viewer ---------- */
+.report-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+.report-header h1 { font-size: 1.4rem; font-weight: 500; color: var(--color-text-primary); margin: 0; }
+.report-export-button { height: 42px; padding: 0 1.25rem; border: none; border-radius: var(--radius-sm); background: var(--color-secondary-500);
+  color: white; font-size: 0.88rem; font-weight: 500; cursor: pointer; }
+.report-export-button:hover { background: var(--color-secondary-700); }
+.report-layout { display: grid; grid-template-columns: 220px 1fr; gap: 1.5rem; }
+.report-toc { display: flex; flex-direction: column; gap: 4px; background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); padding: 0.75rem; align-self: flex-start; }
+.report-toc button { text-align: left; border: none; background: transparent; padding: 0.55rem 0.7rem; border-radius: var(--radius-sm);
+  font-size: 0.87rem; color: var(--color-text-secondary); cursor: pointer; }
+.report-toc button:hover { background: var(--color-bg-base); }
+.report-toc button.active { background: var(--color-primary-50); color: var(--color-primary-700); font-weight: 500; }
+.report-content { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.75rem; }
+.report-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.report-section-header h2 { font-size: 1.15rem; font-weight: 500; color: var(--color-text-primary); margin: 0; }
+.report-regenerate-button { border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-secondary);
+  font-size: 0.8rem; padding: 0.45rem 0.85rem; border-radius: var(--radius-sm); cursor: pointer; }
+.report-regenerate-button:hover { border-color: var(--color-primary-300); color: var(--color-primary-600); }
+.report-section-body { width: 100%; min-height: 360px; border: none; resize: vertical; font-family: var(--font-reading);
+  font-size: 1.02rem; line-height: 1.75; color: var(--color-text-primary); background: transparent; }
+@media (max-width: 800px) { .report-layout { grid-template-columns: 1fr; } .report-toc { flex-direction: row; overflow-x: auto; } }
+
+/* ---------- Research History ---------- */
+.history-title { font-size: 1.4rem; font-weight: 500; color: var(--color-text-primary); margin: 0 0 1.25rem; }
+.history-filters { display: flex; gap: 10px; margin-bottom: 1.5rem; }
+.history-filters input, .history-filters select { height: 40px; border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  padding: 0 0.85rem; font-size: 0.87rem; background: var(--color-surface); color: var(--color-text-primary); }
+.history-filters input { flex: 1; max-width: 320px; }
+.history-list { list-style: none; margin: 0; padding: 0; background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); overflow: hidden; }
+.history-row { width: 100%; display: grid; grid-template-columns: 1fr auto auto; gap: 1.5rem; align-items: center; padding: 0.9rem 1.25rem;
+  border: none; border-bottom: 1px solid var(--color-border); background: transparent; cursor: pointer; text-align: left; }
+.history-row:hover { background: var(--color-bg-base); }
+.history-name { font-weight: 500; color: var(--color-text-primary); font-size: 0.9rem; }
+.history-industry { font-size: 0.8rem; color: var(--color-primary-600); white-space: nowrap; }
+.history-date { font-size: 0.8rem; color: var(--color-text-muted); white-space: nowrap; }
+
+/* ---------- Settings ---------- */
+.settings-title { font-size: 1.4rem; font-weight: 500; color: var(--color-text-primary); margin: 0 0 1.25rem; }
+.settings-tabs { display: flex; gap: 4px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  padding: 4px; width: fit-content; margin-bottom: 1.5rem; }
+.settings-tabs button { border: none; background: transparent; padding: 0.55rem 1rem; border-radius: var(--radius-sm); font-size: 0.85rem;
+  color: var(--color-text-secondary); cursor: pointer; }
+.settings-tabs button.active { background: var(--color-primary-50); color: var(--color-primary-700); font-weight: 500; }
+.settings-panel { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.75rem; max-width: 640px; }
+.settings-panel h2 { font-size: 1.05rem; font-weight: 500; color: var(--color-text-primary); margin: 0 0 1.25rem; }
+.settings-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.settings-panel-header h2 { margin: 0; }
+.settings-add-button { height: 38px; padding: 0 1rem; border: none; border-radius: var(--radius-sm); background: var(--color-primary-500);
+  color: white; font-size: 0.85rem; font-weight: 500; cursor: pointer; }
+.settings-add-button:hover { background: var(--color-primary-600); }
+.settings-empty-text { color: var(--color-text-secondary); font-size: 0.9rem; }
+.settings-key-list { list-style: none; margin: 0; padding: 0; }
+.settings-key-row { display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 0; border-bottom: 1px solid var(--color-border); }
+.settings-key-row:last-child { border-bottom: none; }
+.settings-key-provider { display: block; font-weight: 500; color: var(--color-text-primary); font-size: 0.9rem; }
+.settings-key-masked { display: block; font-size: 0.8rem; color: var(--color-text-muted); font-family: monospace; }
+.settings-key-actions { display: flex; align-items: center; gap: 10px; }
+.settings-key-actions button { font-size: 0.8rem; border: 1px solid var(--color-border); background: var(--color-surface); padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-sm); cursor: pointer; color: var(--color-text-secondary); }
+.settings-remove-button:hover { border-color: var(--color-danger); color: var(--color-danger); }
+.settings-default-badge { font-size: 0.78rem; color: var(--color-success); background: rgba(28,158,99,0.1); padding: 0.35rem 0.7rem; border-radius: 999px; }
+.settings-panel label { display: block; font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 0.35rem; }
+.settings-panel input { width: 100%; height: 42px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0 0.85rem;
+  font-size: 0.9rem; margin-bottom: 1.25rem; background: var(--color-bg-base); color: var(--color-text-primary); }
+.settings-theme-toggle { display: flex; gap: 8px; }
+.settings-theme-toggle button { padding: 0.6rem 1.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  background: var(--color-surface); cursor: pointer; font-size: 0.88rem; color: var(--color-text-secondary); }
+.settings-theme-toggle button.active { border-color: var(--color-primary-500); color: var(--color-primary-700); background: var(--color-primary-50); font-weight: 500; }
+
+/* ---------- Error boundary ---------- */
+.app-error-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1rem; padding: 2rem; text-align: center; }
+.app-error-screen p { color: var(--color-text-secondary); max-width: 420px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const AppState = (function () {
+  const listeners = new Set();
+  const store = {
+    state: {
+      user: null,
+      theme: "light",
+      connectedKeys: [],
+      rawKeys: {},
+      projects: [],
+      sessions: [],
+      isGenerating: false,
+      generationError: null,
+    },
+  };
+  function setState(patch) {
+    Object.assign(store.state, patch);
+    listeners.forEach((fn) => fn(store.state));
+  }
+  function mutateStateSilently(mutator) {
+    mutator(store.state);
+  }
+  function subscribe(fn) {
+    listeners.add(fn);
+    return () => listeners.delete(fn);
+  }
+  function maskKey(key) {
+    return key.length <= 8 ? "••••••••" : `${key.slice(0, 3)}••••••••${key.slice(-4)}`;
+  }
+  function getActiveAdapterCall() {
+    const active = store.state.connectedKeys.find((k) => k.isDefault);
+    if (!active) return null;
+    const apiKey = store.state.rawKeys[active.provider];
+    return apiKey ? { provider: active.provider, apiKey } : null;
+  }
+  return { store, setState, mutateStateSilently, subscribe, maskKey, getActiveAdapterCall };
+})();
+
+const Providers = (function () {
+  const GOAL_LABELS = {
+    "market-sizing": "Market sizing",
+    "competitor-swot": "Competitor SWOT",
+    "audience-insights": "Audience insights",
+    "trend-analysis": "Trend analysis",
+  };
+
+  function buildResearchPrompt(input) {
+    const goalList = input.goals.map((g) => GOAL_LABELS[g] ?? g).join(", ");
+    const competitorLine = input.competitors.length
+      ? `Known competitors: ${input.competitors.join(", ")}.`
+      : "No competitors were specified — identify likely ones.";
+    return [
+      `Produce a market research report for the following brief.`,
+      `Industry or market: ${input.industry}`,
+      `Target audience or region: ${input.audience}`,
+      competitorLine,
+      `Cover these areas: ${goalList}.`,
+      `Return the report as clearly labeled sections, one per line starting`,
+      `with "## " followed by the section title, so it can be parsed`,
+      `programmatically (e.g. "## Market overview").`,
+    ].join("\n");
+  }
+
+  function parseSectionsFromText(text) {
+    const blocks = text.split(/^##\s+/m).filter(Boolean);
+    if (blocks.length === 0) {
+      return [{ id: "overview", title: "Overview", content: text.trim() }];
+    }
+    return blocks.map((block, index) => {
+      const [titleLine, ...rest] = block.split("\n");
+      const title = titleLine.trim();
+      return {
+        id: title.toLowerCase().replace(/[^a-z0-9]+/g, "-") || `section-${index}`,
+        title,
+        content: rest.join("\n").trim(),
+      };
+    });
+  }
+
+  const openaiAdapter = {
+    async verifyKey(apiKey) {
+      const res = await fetch("https://api.openai.com/v1/models", {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      return res.ok;
+    },
+    async generateReport(apiKey, input) {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: buildResearchPrompt(input) }],
+        }),
+      });
+      if (!res.ok) throw new Error("OpenAI request failed");
+      const data = await res.json();
+      return parseSectionsFromText(data.choices?.[0]?.message?.content ?? "");
+    },
+    async regenerateSection(apiKey, input, sectionId) {
+      const sections = await this.generateReport(apiKey, input);
+      return sections.find((s) => s.id === sectionId) ?? sections[0];
+    },
+  };
+
+  const anthropicAdapter = {
+    async verifyKey(apiKey) {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 1,
+          messages: [{ role: "user", content: "ping" }],
+        }),
+      });
+      return res.ok;
+    },
+    async generateReport(apiKey, input) {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 2000,
+          messages: [{ role: "user", content: buildResearchPrompt(input) }],
+        }),
+      });
+      if (!res.ok) throw new Error("Anthropic request failed");
+      const data = await res.json();
+      const text = data.content?.map((b) => b.text ?? "").join("\n") ?? "";
+      return parseSectionsFromText(text);
+    },
+    async regenerateSection(apiKey, input, sectionId) {
+      const sections = await this.generateReport(apiKey, input);
+      return sections.find((s) => s.id === sectionId) ?? sections[0];
+    },
+  };
+
+  const geminiAdapter = {
+    async verifyKey(apiKey) {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+      );
+      return res.ok;
+    },
+    async generateReport(apiKey, input) {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: [{ parts: [{ text: buildResearchPrompt(input) }] }] }),
+        }
+      );
+      if (!res.ok) throw new Error("Gemini request failed");
+      const data = await res.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+      return parseSectionsFromText(text);
+    },
+    async regenerateSection(apiKey, input, sectionId) {
+      const sections = await this.generateReport(apiKey, input);
+      return sections.find((s) => s.id === sectionId) ?? sections[0];
+    },
+  };
+
+  const mistralAdapter = {
+    async verifyKey(apiKey) {
+      const res = await fetch("https://api.mistral.ai/v1/models", {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      return res.ok;
+    },
+    async generateReport(apiKey, input) {
+      const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: "mistral-large-latest",
+          messages: [{ role: "user", content: buildResearchPrompt(input) }],
+        }),
+      });
+      if (!res.ok) throw new Error("Mistral request failed");
+      const data = await res.json();
+      return parseSectionsFromText(data.choices?.[0]?.message?.content ?? "");
+    },
+    async regenerateSection(apiKey, input, sectionId) {
+      const sections = await this.generateReport(apiKey, input);
+      return sections.find((s) => s.id === sectionId) ?? sections[0];
+    },
+  };
+
+  const groqAdapter = {
+    async verifyKey(apiKey) {
+      const res = await fetch("https://api.groq.com/openai/v1/models", {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      return res.ok;
+    },
+    async generateReport(apiKey, input) {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [{ role: "user", content: buildResearchPrompt(input) }],
+        }),
+      });
+      if (!res.ok) throw new Error("Groq request failed");
+      const data = await res.json();
+      return parseSectionsFromText(data.choices?.[0]?.message?.content ?? "");
+    },
+    async regenerateSection(apiKey, input, sectionId) {
+      const sections = await this.generateReport(apiKey, input);
+      return sections.find((s) => s.id === sectionId) ?? sections[0];
+    },
+  };
+
+  const openrouterAdapter = {
+    async verifyKey(apiKey) {
+      const res = await fetch("https://openrouter.ai/api/v1/auth/key", {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      return res.ok;
+    },
+    async generateReport(apiKey, input) {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: "openai/gpt-4o",
+          messages: [{ role: "user", content: buildResearchPrompt(input) }],
+        }),
+      });
+      if (!res.ok) throw new Error("OpenRouter request failed");
+      const data = await res.json();
+      return parseSectionsFromText(data.choices?.[0]?.message?.content ?? "");
+    },
+    async regenerateSection(apiKey, input, sectionId) {
+      const sections = await this.generateReport(apiKey, input);
+      return sections.find((s) => s.id === sectionId) ?? sections[0];
+    },
+  };
+
+  const deepseekAdapter = {
+    async verifyKey(apiKey) {
+      const res = await fetch("https://api.deepseek.com/models", {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      return res.ok;
+    },
+    async generateReport(apiKey, input) {
+      const res = await fetch("https://api.deepseek.com/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: "deepseek-chat",
+          messages: [{ role: "user", content: buildResearchPrompt(input) }],
+        }),
+      });
+      if (!res.ok) throw new Error("DeepSeek request failed");
+      const data = await res.json();
+      return parseSectionsFromText(data.choices?.[0]?.message?.content ?? "");
+    },
+    async regenerateSection(apiKey, input, sectionId) {
+      const sections = await this.generateReport(apiKey, input);
+      return sections.find((s) => s.id === sectionId) ?? sections[0];
+    },
+  };
+
+  const togetherAdapter = {
+    async verifyKey(apiKey) {
+      const res = await fetch("https://api.together.xyz/v1/models", {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      return res.ok;
+    },
+    async generateReport(apiKey, input) {
+      const res = await fetch("https://api.together.xyz/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+          messages: [{ role: "user", content: buildResearchPrompt(input) }],
+        }),
+      });
+      if (!res.ok) throw new Error("Together AI request failed");
+      const data = await res.json();
+      return parseSectionsFromText(data.choices?.[0]?.message?.content ?? "");
+    },
+    async regenerateSection(apiKey, input, sectionId) {
+      const sections = await this.generateReport(apiKey, input);
+      return sections.find((s) => s.id === sectionId) ?? sections[0];
+    },
+  };
+
+  const ADAPTERS = {
+    openai: openaiAdapter,
+    anthropic: anthropicAdapter,
+    gemini: geminiAdapter,
+    mistral: mistralAdapter,
+    groq: groqAdapter,
+    openrouter: openrouterAdapter,
+    deepseek: deepseekAdapter,
+    together: togetherAdapter,
+  };
+
+  function getProviderAdapter(provider) {
+    const adapter = ADAPTERS[provider];
+    if (!adapter) throw new Error(`No AI provider adapter registered for "${provider}".`);
+    return adapter;
+  }
+
+  return { buildResearchPrompt, parseSectionsFromText, getProviderAdapter };
+})();
+
+const Actions = (function () {
+  function signIn(email) {
+    AppState.setState({ user: { id: "local-user", name: email.split("@")[0], email } });
+  }
+  function signUp(email) {
+    AppState.setState({ user: { id: "local-user", name: email.split("@")[0], email } });
+  }
+  function signInWithGoogle() {
+    AppState.setState({ user: { id: "local-user", name: "Google user", email: "user@gmail.com" } });
+  }
+  function signOut() {
+    AppState.setState({ user: null });
+  }
+  function setTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    AppState.setState({ theme });
+  }
+  async function verifyAndSaveKey(provider, apiKey) {
+    const adapter = Providers.getProviderAdapter(provider);
+    const isValid = await adapter.verifyKey(apiKey);
+    if (!isValid) return false;
+    const prev = AppState.store.state.connectedKeys;
+    const existing = prev.find((k) => k.provider === provider);
+    const withoutExisting = prev.filter((k) => k.provider !== provider);
+    const isDefault = existing ? existing.isDefault : withoutExisting.length === 0;
+    AppState.setState({
+      connectedKeys: [...withoutExisting, { provider, maskedKey: AppState.maskKey(apiKey), isDefault }],
+      rawKeys: { ...AppState.store.state.rawKeys, [provider]: apiKey },
+    });
+    return true;
+  }
+  function removeKey(provider) {
+    const rawKeys = { ...AppState.store.state.rawKeys };
+    delete rawKeys[provider];
+    AppState.setState({
+      connectedKeys: AppState.store.state.connectedKeys.filter((k) => k.provider !== provider),
+      rawKeys,
+    });
+  }
+  function setDefaultProvider(provider) {
+    AppState.setState({
+      connectedKeys: AppState.store.state.connectedKeys.map((k) => ({ ...k, isDefault: k.provider === provider })),
+    });
+  }
+  async function createProjectAndGenerate(name, input) {
+    const activeCall = AppState.getActiveAdapterCall();
+    if (!activeCall) {
+      AppState.setState({ generationError: "Connect and verify an AI provider before generating a report." });
+      return null;
+    }
+    AppState.setState({ isGenerating: true, generationError: null });
+    const projectId = crypto.randomUUID();
+    const project = {
+      id: projectId,
+      name,
+      industry: input.industry,
+      updatedAt: new Date().toLocaleDateString(),
+      archived: false,
+    };
+    try {
+      const adapter = Providers.getProviderAdapter(activeCall.provider);
+      const sections = await adapter.generateReport(activeCall.apiKey, input);
+      const session = {
+        id: crypto.randomUUID(),
+        projectId,
+        status: "complete",
+        input,
+        sections,
+        createdAt: new Date().toLocaleDateString(),
+      };
+      AppState.setState({
+        projects: [...AppState.store.state.projects, project],
+        sessions: [...AppState.store.state.sessions, session],
+        isGenerating: false,
+      });
+      return session;
+    } catch {
+      AppState.setState({
+        generationError: "The report couldn't be generated. Check your API key and try again.",
+        isGenerating: false,
+      });
+      return null;
+    }
+  }
+  function archiveProject(id) {
+    AppState.setState({
+      projects: AppState.store.state.projects.map((p) => (p.id === id ? { ...p, archived: true } : p)),
+    });
+  }
+  async function regenerateSection(sessionId, sectionId) {
+    const activeCall = AppState.getActiveAdapterCall();
+    const session = AppState.store.state.sessions.find((s) => s.id === sessionId);
+    if (!activeCall || !session) return;
+    const adapter = Providers.getProviderAdapter(activeCall.provider);
+    const updatedSection = await adapter.regenerateSection(activeCall.apiKey, session.input, sectionId);
+    AppState.setState({
+      sessions: AppState.store.state.sessions.map((s) =>
+        s.id === sessionId
+          ? { ...s, sections: s.sections.map((sec) => (sec.id === sectionId ? updatedSection : sec)) }
+          : s
+      ),
+    });
+  }
+  function updateSectionContent(sessionId, sectionId, content) {
+    AppState.mutateStateSilently((state) => {
+      state.sessions = state.sessions.map((s) =>
+        s.id === sessionId
+          ? { ...s, sections: s.sections.map((sec) => (sec.id === sectionId ? { ...sec, content } : sec)) }
+          : s
+      );
+    });
+  }
+  function getSessionForProject(projectId) {
+    return AppState.store.state.sessions.find((s) => s.projectId === projectId);
+  }
+  return {
+    signIn, signUp, signInWithGoogle, signOut, setTheme,
+    verifyAndSaveKey, removeKey, setDefaultProvider,
+    createProjectAndGenerate, archiveProject, regenerateSection,
+    updateSectionContent, getSessionForProject,
+  };
+})();
+
+const Shell = (function () {
+  const NAV_ITEMS = [
+    { id: "dashboard", label: "Dashboard", hash: "#/" },
+    { id: "projects", label: "Research projects", hash: "#/projects" },
+    { id: "history", label: "Research history", hash: "#/history" },
+    { id: "settings", label: "Settings", hash: "#/settings" },
+  ];
+
+  function shellHTML(activeNav, userName, innerHtml) {
+    return `
+      <div class="app-shell">
+        <nav class="app-sidebar" aria-label="Main navigation">
+          <div class="app-logo">AI market research</div>
+          <ul>
+            ${NAV_ITEMS.map(
+              (item) => `
+              <li>
+                <button data-nav="${item.hash}" class="${item.id === activeNav ? "active" : ""}"
+                  ${item.id === activeNav ? 'aria-current="page"' : ""}>${item.label}</button>
+              </li>`
+            ).join("")}
+          </ul>
+        </nav>
+        <div class="app-main">
+          <header class="app-topbar">
+            <input type="search" placeholder="Search projects and reports" aria-label="Search" class="app-search" />
+            <div class="app-user">${userName}</div>
+          </header>
+          <main class="app-content">${innerHtml}</main>
+        </div>
+      </div>
+    `;
+  }
+
+  function attachShellEvents(root) {
+    root.querySelectorAll("[data-nav]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        location.hash = btn.dataset.nav;
+      });
+    });
+  }
+
+  return { shellHTML, attachShellEvents };
+})();
+
+const Screens = {};
+
+Screens.auth = (function () {
+  let mode = "signIn";
+
+  function template() {
+    return `
+      <div class="auth-screen">
+        <aside class="auth-hero">
+          <div class="auth-hero-content">
+            <span class="auth-hero-badge">AI market research assistant</span>
+            <h1>Bring your own AI. Get research that's actually structured.</h1>
+            <p>Connect OpenAI, Anthropic, or Gemini with your own key, and turn a
+               few inputs into a complete market research report.</p>
+          </div>
+        </aside>
+        <main class="auth-panel">
+          <div class="auth-card">
+            <div class="auth-mode-toggle" role="tablist" aria-label="Authentication mode">
+              <button role="tab" aria-selected="${mode === "signIn"}" data-mode="signIn"
+                class="${mode === "signIn" ? "active" : ""}">Sign in</button>
+              <button role="tab" aria-selected="${mode === "signUp"}" data-mode="signUp"
+                class="${mode === "signUp" ? "active" : ""}">Create account</button>
+            </div>
+            <h2>${mode === "signIn" ? "Welcome back" : "Create your account"}</h2>
+            <form id="auth-form" novalidate>
+              <label for="auth-email">Email</label>
+              <input id="auth-email" type="email" autocomplete="email" placeholder="name@company.com" required />
+              <label for="auth-password">Password</label>
+              <input id="auth-password" type="password"
+                autocomplete="${mode === "signIn" ? "current-password" : "new-password"}"
+                placeholder="Enter your password" required minlength="8" />
+              ${mode === "signIn" ? '<a href="#" class="auth-link" id="auth-forgot">Forgot your password?</a>' : ""}
+              <button type="submit" class="auth-submit">${mode === "signIn" ? "Sign in" : "Create account"}</button>
+            </form>
+            <div class="auth-divider"><span>or</span></div>
+            <button type="button" class="auth-google" id="auth-google">Continue with Google</button>
+            <p class="auth-switch">
+              ${mode === "signIn" ? "New here? " : "Already have an account? "}
+              <button type="button" class="auth-link-button" id="auth-switch-mode">
+                ${mode === "signIn" ? "Create an account" : "Sign in"}
+              </button>
+            </p>
+          </div>
+        </main>
+      </div>
+    `;
+  }
+
+  function render(root) {
+    root.innerHTML = template();
+    root.querySelectorAll("[data-mode]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        mode = btn.dataset.mode;
+        render(root);
+      });
+    });
+    root.querySelector("#auth-switch-mode").addEventListener("click", () => {
+      mode = mode === "signIn" ? "signUp" : "signIn";
+      render(root);
+    });
+    root.querySelector("#auth-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const email = root.querySelector("#auth-email").value;
+      if (mode === "signIn") Actions.signIn(email);
+      else Actions.signUp(email);
+      location.hash = "#/onboarding";
+    });
+    root.querySelector("#auth-google").addEventListener("click", () => {
+      Actions.signInWithGoogle();
+      location.hash = "#/onboarding";
+    });
+  }
+
+  return { render };
+})();
+
+Screens.onboarding = (function () {
+  const PROVIDERS = [
+    { id: "openai", name: "OpenAI", description: "GPT models" },
+    { id: "anthropic", name: "Anthropic", description: "Claude models" },
+    { id: "gemini", name: "Gemini", description: "Google models" },
+    { id: "mistral", name: "Mistral", description: "Mistral Large & Small" },
+    { id: "groq", name: "Groq", description: "Fast Llama inference" },
+    { id: "openrouter", name: "OpenRouter", description: "Multi-model router" },
+    { id: "deepseek", name: "DeepSeek", description: "DeepSeek chat models" },
+    { id: "together", name: "Together AI", description: "Open-source models" },
+  ];
+
+  let selectedProvider = null;
+  let verifyState = "idle";
+  let errorMessage = null;
+
+  function template() {
+    const provider = PROVIDERS.find((p) => p.id === selectedProvider);
+    return `
+      <div class="onboarding-screen">
+        <div class="onboarding-card">
+          <span class="onboarding-eyebrow">Step 1 of 1</span>
+          <h1>Connect your AI provider</h1>
+          <p class="onboarding-subtitle">
+            This app runs on your own API key — nothing is generated until you
+            connect one. You can add more providers later in settings.
+          </p>
+          <div class="provider-grid" role="radiogroup" aria-label="AI provider">
+            ${PROVIDERS.map(
+              (p) => `
+              <button type="button" role="radio" aria-checked="${p.id === selectedProvider}"
+                data-provider="${p.id}" class="provider-card ${p.id === selectedProvider ? "selected" : ""}">
+                <span class="provider-name">${p.name}</span>
+                <span class="provider-description">${p.description}</span>
+              </button>`
+            ).join("")}
+          </div>
+          ${
+            provider
+              ? `
+            <div class="key-entry">
+              <label for="api-key">${provider.name} API key</label>
+              <div class="key-input-row">
+                <input id="api-key" type="password" placeholder="Paste your API key" autocomplete="off" />
+                <button type="button" id="verify-btn" class="verify-button" ${
+                  verifyState === "verifying" ? "disabled" : ""
+                }>${verifyState === "verifying" ? "Verifying…" : "Verify"}</button>
+              </div>
+              ${
+                verifyState === "verified"
+                  ? `<div class="verify-status success" role="status">Key verified. You're ready to go.</div>`
+                  : ""
+              }
+              ${
+                verifyState === "error" && errorMessage
+                  ? `<div class="verify-status error" role="alert">${errorMessage}</div>`
+                  : ""
+              }
+              <p class="key-note">Your key is encrypted and never shown again after saving.</p>
+            </div>`
+              : ""
+          }
+          <div class="onboarding-actions">
+            <button type="button" id="onboarding-skip" class="onboarding-skip">Skip for now</button>
+            <button type="button" id="onboarding-continue" class="onboarding-continue"
+              ${verifyState !== "verified" ? "disabled" : ""}>Continue to dashboard</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function render(root) {
+    root.innerHTML = template();
+    root.querySelectorAll("[data-provider]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        selectedProvider = btn.dataset.provider;
+        verifyState = "idle";
+        errorMessage = null;
+        render(root);
+      });
+    });
+    const verifyBtn = root.querySelector("#verify-btn");
+    if (verifyBtn) {
+      verifyBtn.addEventListener("click", async () => {
+        const apiKey = root.querySelector("#api-key").value.trim();
+        if (!apiKey) return;
+        verifyState = "verifying";
+        render(root);
+        try {
+          const success = await Actions.verifyAndSaveKey(selectedProvider, apiKey);
+          verifyState = success ? "verified" : "error";
+          errorMessage = success ? null : "That key couldn't be verified. Check it and try again.";
+        } catch {
+          verifyState = "error";
+          errorMessage = "Couldn't reach the provider. Check your connection and try again.";
+        }
+        render(root);
+      });
+    }
+    root.querySelector("#onboarding-skip").addEventListener("click", () => {
+      location.hash = "#/";
+    });
+    root.querySelector("#onboarding-continue").addEventListener("click", () => {
+      if (verifyState === "verified") location.hash = "#/";
+    });
+  }
+
+  return { render };
+})();
+
+Screens.dashboard = (function () {
+  function render(root) {
+    const { user, projects } = AppState.store.state;
+    const recent = projects.filter((p) => !p.archived).slice(0, 6);
+    const hasProjects = recent.length > 0;
+
+    const inner = `
+      <div class="dashboard-hero">
+        <div>
+          <h1>Welcome, ${user?.name ?? ""}</h1>
+          <p>Start a new research project or jump back into recent work.</p>
+        </div>
+        <button class="dashboard-cta" id="dash-new">New research project</button>
+      </div>
+      <section class="dashboard-section">
+        <h2>Recent projects</h2>
+        ${
+          hasProjects
+            ? `<div class="dashboard-project-grid">
+                ${recent
+                  .map(
+                    (p) => `
+                  <button class="dashboard-project-card" data-open="${p.id}">
+                    <span class="project-name">${p.name}</span>
+                    <span class="project-industry">${p.industry}</span>
+                    <span class="project-updated">Updated ${p.updatedAt}</span>
+                  </button>`
+                  )
+                  .join("")}
+              </div>`
+            : `<div class="dashboard-empty-state">
+                <span class="dashboard-empty-icon" aria-hidden="true">✨</span>
+                <h3>Start your first research project</h3>
+                <p>Define an industry, audience, and goals — your connected AI
+                   provider will turn that into a structured report.</p>
+                <button class="dashboard-cta" id="dash-empty-new">Create project</button>
+              </div>`
+        }
+      </section>
+    `;
+
+    root.innerHTML = Shell.shellHTML("dashboard", user?.name ?? "", inner);
+    Shell.attachShellEvents(root);
+
+    const goNew = () => (location.hash = "#/projects/new");
+    root.querySelector("#dash-new")?.addEventListener("click", goNew);
+    root.querySelector("#dash-empty-new")?.addEventListener("click", goNew);
+    root.querySelectorAll("[data-open]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        location.hash = `#/projects/${btn.dataset.open}/report`;
+      });
+    });
+  }
+  return { render };
+})();
+
+Screens.projects = (function () {
+  let query = "";
+
+  function render(root) {
+    const { user, projects } = AppState.store.state;
+    const filtered = projects.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()));
+
+    const inner = `
+      <div class="projects-header">
+        <h1>Research projects</h1>
+        <button class="projects-new-button" id="projects-new">New project</button>
+      </div>
+      <input type="search" placeholder="Filter by project name" id="projects-filter"
+        class="projects-filter" aria-label="Filter projects" value="${query}" />
+      ${
+        filtered.length === 0
+          ? `<div class="projects-empty-state">
+              <span class="projects-empty-icon" aria-hidden="true">${projects.length === 0 ? "📁" : "🔍"}</span>
+              <h3>${projects.length === 0 ? "No projects yet" : "No matches"}</h3>
+              <p>${
+                projects.length === 0
+                  ? "Create your first research project to get started."
+                  : "Try a different search term."
+              }</p>
+              ${
+                projects.length === 0
+                  ? '<button class="projects-new-button" id="projects-empty-new">Create project</button>'
+                  : ""
+              }
+            </div>`
+          : `<ul class="projects-list">
+              ${filtered
+                .map(
+                  (p) => `
+                <li class="projects-list-row">
+                  <button class="projects-list-main" data-open="${p.id}">
+                    <span class="projects-list-name">${p.name}</span>
+                    <span class="projects-list-industry">${p.industry}</span>
+                  </button>
+                  <span class="projects-list-updated">Updated ${p.updatedAt}</span>
+                  <button class="projects-archive-button" data-archive="${p.id}">Archive</button>
+                </li>`
+                )
+                .join("")}
+            </ul>`
+      }
+    `;
+
+    root.innerHTML = Shell.shellHTML("projects", user?.name ?? "", inner);
+    Shell.attachShellEvents(root);
+
+    const goNew = () => (location.hash = "#/projects/new");
+    root.querySelector("#projects-new").addEventListener("click", goNew);
+    root.querySelector("#projects-empty-new")?.addEventListener("click", goNew);
+
+    root.querySelector("#projects-filter").addEventListener("input", (e) => {
+      query = e.target.value;
+      render(root);
+      const input = root.querySelector("#projects-filter");
+      input.focus();
+      input.setSelectionRange(query.length, query.length);
+    });
+
+    root.querySelectorAll("[data-open]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        location.hash = `#/projects/${btn.dataset.open}/report`;
+      });
+    });
+    root.querySelectorAll("[data-archive]").forEach((btn) => {
+      btn.addEventListener("click", () => Actions.archiveProject(btn.dataset.archive));
+    });
+  }
+  return { render };
+})();
+
+Screens.builder = (function () {
+  const GOALS = [
+    { id: "market-sizing", label: "Market sizing" },
+    { id: "competitor-swot", label: "Competitor SWOT" },
+    { id: "audience-insights", label: "Audience insights" },
+    { id: "trend-analysis", label: "Trend analysis" },
+  ];
+
+  let industry = "";
+  let audience = "";
+  let competitorInput = "";
+  let competitors = [];
+  let goals = [];
+
+  function render(root) {
+    const { user, isGenerating, generationError } = AppState.store.state;
+    const canSubmit = industry && audience && goals.length > 0 && !isGenerating;
+
+    const inner = `
+      <div class="builder-container">
+        <h1>Define your research</h1>
+        <p class="builder-subtitle">
+          Answer a few questions and your connected AI provider will generate a
+          structured report from them.
+        </p>
+        ${generationError ? `<div class="builder-error" role="alert">${generationError}</div>` : ""}
+        <form id="builder-form" class="builder-form">
+          <label for="builder-industry">Industry or market</label>
+          <input id="builder-industry" placeholder="e.g. Direct-to-consumer skincare" value="${industry}" required />
+          <label for="builder-audience">Target audience or region</label>
+          <input id="builder-audience" placeholder="e.g. Women 25-40, United States" value="${audience}" required />
+          <label for="builder-competitor">Competitors (optional)</label>
+          <div class="builder-tag-input-row">
+            <input id="builder-competitor" placeholder="Type a name and press enter" value="${competitorInput}" />
+            <button type="button" id="builder-add-competitor">Add</button>
+          </div>
+          ${
+            competitors.length > 0
+              ? `<div class="builder-tags">
+                  ${competitors
+                    .map(
+                      (c) => `<span class="builder-tag">${c}
+                        <button type="button" data-remove-competitor="${c}" aria-label="Remove ${c}">×</button>
+                      </span>`
+                    )
+                    .join("")}
+                </div>`
+              : ""
+          }
+          <fieldset class="builder-goals">
+            <legend>Research goals</legend>
+            ${GOALS.map(
+              (g) => `
+              <label class="builder-goal-checkbox">
+                <input type="checkbox" data-goal="${g.id}" ${goals.includes(g.id) ? "checked" : ""} />
+                ${g.label}
+              </label>`
+            ).join("")}
+          </fieldset>
+          <button type="submit" class="builder-submit" ${canSubmit ? "" : "disabled"}>
+            ${isGenerating ? "Generating report…" : "Generate research report"}
+          </button>
+        </form>
+      </div>
+    `;
+
+    root.innerHTML = Shell.shellHTML("projects", user?.name ?? "", inner);
+    Shell.attachShellEvents(root);
+
+    const industryInput = root.querySelector("#builder-industry");
+    const audienceInput = root.querySelector("#builder-audience");
+    const competitorInputEl = root.querySelector("#builder-competitor");
+    const submitButton = root.querySelector(".builder-submit");
+
+    function refreshSubmitState() {
+      const canSubmitNow = industry && audience && goals.length > 0 && !AppState.store.state.isGenerating;
+      submitButton.disabled = !canSubmitNow;
+    }
+
+    industryInput.addEventListener("input", (e) => {
+      industry = e.target.value;
+      refreshSubmitState();
+    });
+    audienceInput.addEventListener("input", (e) => {
+      audience = e.target.value;
+      refreshSubmitState();
+    });
+    competitorInputEl.addEventListener("input", (e) => {
+      competitorInput = e.target.value;
+    });
+    competitorInputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addCompetitor(root);
+      }
+    });
+    root.querySelector("#builder-add-competitor").addEventListener("click", () => addCompetitor(root));
+
+    root.querySelectorAll("[data-remove-competitor]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        competitors = competitors.filter((c) => c !== btn.dataset.removeCompetitor);
+        render(root);
+      });
+    });
+
+    root.querySelectorAll("[data-goal]").forEach((cb) => {
+      cb.addEventListener("change", () => {
+        const id = cb.dataset.goal;
+        goals = goals.includes(id) ? goals.filter((g) => g !== id) : [...goals, id];
+        render(root);
+      });
+    });
+
+    root.querySelector("#builder-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const session = await Actions.createProjectAndGenerate(industry, { industry, audience, competitors, goals });
+      if (session) location.hash = `#/projects/${session.projectId}/report`;
+    });
+  }
+
+  function addCompetitor(root) {
+    const trimmed = competitorInput.trim();
+    if (trimmed && !competitors.includes(trimmed)) competitors = [...competitors, trimmed];
+    competitorInput = "";
+    render(root);
+  }
+
+  return { render };
+})();
+
+Screens.report = (function () {
+  let activeSectionId = null;
+
+  function render(root, projectId) {
+    const { user, projects } = AppState.store.state;
+    const session = Actions.getSessionForProject(projectId);
+    const project = projects.find((p) => p.id === projectId);
+
+    if (!session) {
+      location.hash = "#/projects";
+      return;
+    }
+
+    if (!activeSectionId || !session.sections.some((s) => s.id === activeSectionId)) {
+      activeSectionId = session.sections[0]?.id ?? null;
+    }
+    const activeSection = session.sections.find((s) => s.id === activeSectionId);
+
+    const inner = `
+      <div class="report-header">
+        <h1>${project?.name ?? "Research report"}</h1>
+        <button class="report-export-button" id="report-export">Export to PDF</button>
+      </div>
+      <div class="report-layout">
+        <nav class="report-toc" aria-label="Report sections">
+          ${session.sections
+            .map(
+              (s) => `<button data-section="${s.id}" class="${s.id === activeSectionId ? "active" : ""}">${s.title}</button>`
+            )
+            .join("")}
+        </nav>
+        <div class="report-content">
+          ${
+            activeSection
+              ? `
+            <div class="report-section-header">
+              <h2>${activeSection.title}</h2>
+              <button class="report-regenerate-button" id="report-regenerate">Regenerate section</button>
+            </div>
+            <textarea class="report-section-body" id="report-body"
+              aria-label="${activeSection.title} content">${activeSection.content}</textarea>`
+              : "<p>No sections yet.</p>"
+          }
+        </div>
+      </div>
+    `;
+
+    root.innerHTML = Shell.shellHTML("projects", user?.name ?? "", inner);
+    Shell.attachShellEvents(root);
+
+    root.querySelectorAll("[data-section]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeSectionId = btn.dataset.section;
+        render(root, projectId);
+      });
+    });
+
+    root.querySelector("#report-export")?.addEventListener("click", () => window.print());
+
+    root.querySelector("#report-regenerate")?.addEventListener("click", async () => {
+      await Actions.regenerateSection(session.id, activeSectionId);
+      render(root, projectId);
+    });
+
+    root.querySelector("#report-body")?.addEventListener("input", (e) => {
+      Actions.updateSectionContent(session.id, activeSectionId, e.target.value);
+    });
+  }
+
+  return { render };
+})();
+
+Screens.history = (function () {
+  let query = "";
+  let industryFilter = "all";
+
+  function render(root) {
+    const { user, sessions, projects } = AppState.store.state;
+    const entries = sessions.map((s) => ({
+      id: s.projectId,
+      projectName: projects.find((p) => p.id === s.projectId)?.name ?? "Untitled",
+      industry: s.input.industry,
+      createdAt: s.createdAt,
+    }));
+
+    const industries = ["all", ...new Set(entries.map((e) => e.industry))];
+    const filtered = entries.filter((e) => {
+      const matchesQuery = e.projectName.toLowerCase().includes(query.toLowerCase());
+      const matchesIndustry = industryFilter === "all" || e.industry === industryFilter;
+      return matchesQuery && matchesIndustry;
+    });
+
+    const inner = `
+      <h1 class="history-title">Research history</h1>
+      <div class="history-filters">
+        <input type="search" id="history-search" placeholder="Search past reports" value="${query}" aria-label="Search research history" />
+        <select id="history-industry" aria-label="Filter by industry">
+          ${industries
+            .map((i) => `<option value="${i}" ${i === industryFilter ? "selected" : ""}>${i === "all" ? "All industries" : i}</option>`)
+            .join("")}
+        </select>
+      </div>
+      ${
+        filtered.length === 0
+          ? `<div class="history-empty-state">
+              <span class="history-empty-icon" aria-hidden="true">${entries.length === 0 ? "🕓" : "🔍"}</span>
+              <h3>${entries.length === 0 ? "No research yet" : "No matches"}</h3>
+              <p>${
+                entries.length === 0
+                  ? "Reports you generate will show up here for quick access."
+                  : "Try a different search or filter."
+              }</p>
+            </div>`
+          : `<ul class="history-list">
+              ${filtered
+                .map(
+                  (e) => `
+                <li>
+                  <button class="history-row" data-open="${e.id}">
+                    <span class="history-name">${e.projectName}</span>
+                    <span class="history-industry">${e.industry}</span>
+                    <span class="history-date">${e.createdAt}</span>
+                  </button>
+                </li>`
+                )
+                .join("")}
+            </ul>`
+      }
+    `;
+
+    root.innerHTML = Shell.shellHTML("history", user?.name ?? "", inner);
+    Shell.attachShellEvents(root);
+
+    const searchInput = root.querySelector("#history-search");
+    searchInput.addEventListener("input", (e) => {
+      query = e.target.value;
+      render(root);
+      const input = root.querySelector("#history-search");
+      input.focus();
+      input.setSelectionRange(query.length, query.length);
+    });
+
+    root.querySelector("#history-industry").addEventListener("change", (e) => {
+      industryFilter = e.target.value;
+      render(root);
+    });
+
+    root.querySelectorAll("[data-open]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        location.hash = `#/projects/${btn.dataset.open}/report`;
+      });
+    });
+  }
+  return { render };
+})();
+
+Screens.settings = (function () {
+  let activeTab = "keys";
+
+  function render(root) {
+    const { user, connectedKeys, theme } = AppState.store.state;
+
+    const inner = `
+      <h1 class="settings-title">Settings</h1>
+      <div class="settings-tabs" role="tablist">
+        <button role="tab" aria-selected="${activeTab === "keys"}" data-tab="keys"
+          class="${activeTab === "keys" ? "active" : ""}">API keys</button>
+        <button role="tab" aria-selected="${activeTab === "profile"}" data-tab="profile"
+          class="${activeTab === "profile" ? "active" : ""}">Profile</button>
+        <button role="tab" aria-selected="${activeTab === "appearance"}" data-tab="appearance"
+          class="${activeTab === "appearance" ? "active" : ""}">Appearance</button>
+      </div>
+      ${activeTab === "keys" ? keysPanel(connectedKeys) : ""}
+      ${activeTab === "profile" ? profilePanel(user) : ""}
+      ${activeTab === "appearance" ? appearancePanel(theme) : ""}
+    `;
+
+    root.innerHTML = Shell.shellHTML("settings", user?.name ?? "", inner);
+    Shell.attachShellEvents(root);
+
+    root.querySelectorAll("[data-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeTab = btn.dataset.tab;
+        render(root);
+      });
+    });
+
+    if (activeTab === "keys") {
+      root.querySelector("#settings-add-key").addEventListener("click", () => {
+        const VALID = ["openai", "anthropic", "gemini", "mistral", "groq", "openrouter", "deepseek", "together"];
+        const input = window.prompt(`Provider (${VALID.join(" / ")})?`)?.trim().toLowerCase();
+        if (!input) return;
+        if (!VALID.includes(input)) {
+          window.alert(`"${input}" isn't a supported provider. Use one of: ${VALID.join(", ")}.`);
+          return;
+        }
+        const key = window.prompt(`API key for ${input}?`);
+        if (key) Actions.verifyAndSaveKey(input, key).then(() => render(root));
+      });
+      root.querySelectorAll("[data-set-default]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          Actions.setDefaultProvider(btn.dataset.setDefault);
+          render(root);
+        });
+      });
+      root.querySelectorAll("[data-remove]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          Actions.removeKey(btn.dataset.remove);
+          render(root);
+        });
+      });
+    }
+
+    if (activeTab === "appearance") {
+      root.querySelectorAll("[data-theme-choice]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          Actions.setTheme(btn.dataset.themeChoice);
+          render(root);
+        });
+      });
+    }
+  }
+
+  function keysPanel(connectedKeys) {
+    return `
+      <div class="settings-panel">
+        <div class="settings-panel-header">
+          <h2>Connected providers</h2>
+          <button class="settings-add-button" id="settings-add-key">Add provider</button>
+        </div>
+        ${
+          connectedKeys.length === 0
+            ? `<p class="settings-empty-text">No providers connected yet.</p>`
+            : `<ul class="settings-key-list">
+                ${connectedKeys
+                  .map(
+                    (k) => `
+                  <li class="settings-key-row">
+                    <div>
+                      <span class="settings-key-provider">${k.provider}</span>
+                      <span class="settings-key-masked">${k.maskedKey}</span>
+                    </div>
+                    <div class="settings-key-actions">
+                      ${
+                        k.isDefault
+                          ? `<span class="settings-default-badge">Default</span>`
+                          : `<button data-set-default="${k.provider}">Set as default</button>`
+                      }
+                      <button class="settings-remove-button" data-remove="${k.provider}">Remove</button>
+                    </div>
+                  </li>`
+                  )
+                  .join("")}
+              </ul>`
+        }
+      </div>
+    `;
+  }
+
+  function profilePanel(user) {
+    return `
+      <div class="settings-panel">
+        <h2>Profile</h2>
+        <label for="settings-name">Name</label>
+        <input id="settings-name" value="${user?.name ?? ""}" />
+        <label for="settings-email">Email</label>
+        <input id="settings-email" type="email" value="${user?.email ?? ""}" />
+      </div>
+    `;
+  }
+
+  function appearancePanel(theme) {
+    return `
+      <div class="settings-panel">
+        <h2>Theme</h2>
+        <div class="settings-theme-toggle" role="radiogroup" aria-label="Theme">
+          <button role="radio" aria-checked="${theme === "light"}" data-theme-choice="light"
+            class="${theme === "light" ? "active" : ""}">Light</button>
+          <button role="radio" aria-checked="${theme === "dark"}" data-theme-choice="dark"
+            class="${theme === "dark" ? "active" : ""}">Dark</button>
+        </div>
+      </div>
+    `;
+  }
+
+  return { render };
+})();
+
+(function () {
+  const root = document.getElementById("app");
+
+  function currentRoute() {
+    return location.hash || "#/auth";
+  }
+
+  function renderRoute() {
+    const hash = currentRoute();
+    const isAuthenticated = !!AppState.store.state.user;
+
+    if (!location.hash) {
+      location.hash = isAuthenticated ? "#/" : "#/auth";
+      return;
+    }
+    if (hash !== "#/auth" && !isAuthenticated) {
+      location.hash = "#/auth";
+      return;
+    }
+    if (hash === "#/auth" && isAuthenticated) {
+      location.hash = "#/";
+      return;
+    }
+
+    const reportMatch = hash.match(/^#\/projects\/([^/]+)\/report$/);
+
+    if (hash === "#/auth") return Screens.auth.render(root);
+    if (hash === "#/onboarding") return Screens.onboarding.render(root);
+    if (hash === "#/" || hash === "") return Screens.dashboard.render(root);
+    if (hash === "#/projects") return Screens.projects.render(root);
+    if (hash === "#/projects/new") return Screens.builder.render(root);
+    if (reportMatch) return Screens.report.render(root, reportMatch[1]);
+    if (hash === "#/history") return Screens.history.render(root);
+    if (hash === "#/settings") return Screens.settings.render(root);
+
+    location.hash = isAuthenticated ? "#/" : "#/auth";
+  }
+
+  window.addEventListener("hashchange", renderRoute);
+  AppState.subscribe(renderRoute);
+
+  document.documentElement.setAttribute("data-theme", AppState.store.state.theme);
+
+  window.addEventListener("error", showErrorScreen);
+  window.addEventListener("unhandledrejection", showErrorScreen);
+
+  function showErrorScreen(event) {
+    console.error("Unhandled error in AI Market Research Assistant:", event.error ?? event.reason);
+    root.innerHTML = `
+      <div class="app-error-screen" role="alert">
+        <h1>Something went wrong</h1>
+        <p>This page hit an unexpected error. Your research data hasn't been
+           lost — try reloading to get back to the dashboard.</p>
+        <button class="dashboard-cta" id="app-reload">Reload app</button>
+      </div>
+    `;
+    root.querySelector("#app-reload").addEventListener("click", () => {
+      location.hash = "#/";
+      location.reload();
+    });
+  }
+
+  renderRoute();
+})();
+</script>
+</body>
+</html>
