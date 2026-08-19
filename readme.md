@@ -2,7 +2,7 @@
 
 Generate structured market research reports — bring your own AI key (OpenAI, Anthropic, Gemini).
 
-![Screenshot](./screenshots/dashboard.png)
+![Screenshot](dashboard.png)
 
 ---
 
@@ -29,14 +29,14 @@ Generate structured market research reports — bring your own AI key (OpenAI, A
 ### Dashboard
 Overview of your research projects.
 
-![Dashboard](./screenshots/dashboard.png)
+![Dashboard](dashboard.png)
 
 ---
 
 ### Research Builder
 Define your industry, audience, and goals.
 
-![Research Builder](./screenshots/builder.png)
+![Research Builder](builder.png)
 
 ---
 
@@ -50,7 +50,7 @@ View, edit, and regenerate sections.
 ### Settings
 Manage your API keys and preferences.
 
-![Settings](./screenshots/settings.png)
+![Settings](settings.png)
 
 ---
 
@@ -86,7 +86,3 @@ Manage your API keys and preferences.
 - **LinkedIn:** [linkedin.com/in/m-faizan-sheikh-0875982a7](https://linkedin.com/in/m-faizan-sheikh-0875982a7)
 
 ---
-
-## 📄 License
-
-MIT
