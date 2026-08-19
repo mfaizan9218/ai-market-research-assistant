@@ -43,7 +43,7 @@ Define your industry, audience, and goals.
 ### Report Viewer
 View, edit, and regenerate sections.
 
-![Report Viewer](./screenshots/report.png)
+![Report Viewer](report.png)
 
 ---
 
